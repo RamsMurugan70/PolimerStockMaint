@@ -1,0 +1,13 @@
+{
+  "name": "stock-app",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Polymer Products stock and dispatch records, with publisher and view-only modes",
+  "scripts": {
+    "start": "node server/server.js",
+    "test": "node test/run.js"
+  },
+  "dependencies": {
+    "@netlify/blobs": "^11.1.7"
+  }
+}

@@ -1,0 +1,8 @@
+# Business records and keys must never reach GitHub.
+data/
+*.xlsx
+*.xls
+*.xlsm
+*.pdf
+node_modules/
+.netlify/

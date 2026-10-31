@@ -1,0 +1,732 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>POLYMER PRODUCTS CO LLC — Stock & Dispatch Management</title>
+<script src="js/ppc.js"></script>
+<meta name="robots" content="noindex">
+<script src="vendor/xlsx.full.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<style>
+  :root{
+    --navy:#0F3D3E;
+    --navy-2:#155C5C;
+    --steel:#1B7A79;
+    --amber:#D2691E;
+    --amber-2:#E8843C;
+    --bg:#f5f7f6;
+    --panel:#ffffff;
+    --line:#dde5e3;
+    --ink:#1c2b2a;
+    --muted:#5c6f6d;
+    --good:#227a4c;
+    --bad:#b13434;
+    --stock:#1B7A79;
+    --dispatch:#D2691E;
+    --return:#6b4fa0;
+    --nonmovable:#6b7280;
+  }
+  *{box-sizing:border-box;}
+  body{margin:0;font-family:'Segoe UI',Arial,sans-serif;background:var(--bg);color:var(--ink);}
+  header.topbar{
+    background:linear-gradient(120deg,var(--navy),var(--navy-2) 70%);
+    color:#fff;padding:14px 22px;display:flex;align-items:center;justify-content:space-between;
+    flex-wrap:wrap;gap:10px;border-bottom:4px solid var(--amber);
+  }
+  header.topbar .brand{display:flex;align-items:center;gap:12px;}
+  header.topbar .brand .coil-mark{
+    width:40px;height:40px;border-radius:50%;border:4px solid var(--amber);position:relative;flex:none;
+  }
+  header.topbar .brand .coil-mark:after{
+    content:"";position:absolute;inset:8px;border-radius:50%;border:3px solid rgba(255,255,255,.55);
+  }
+  header.topbar .brand-logo{height:48px;width:48px;object-fit:contain;background:#fff;border-radius:8px;padding:2px;flex:none;}
+  header.topbar h1{font-size:17px;margin:0;letter-spacing:.5px;}
+  header.topbar .sub{font-size:11px;color:#c9e6e0;margin-top:2px;letter-spacing:1px;}
+  nav.tabs{display:flex;gap:4px;background:var(--navy-2);padding:0 14px;flex-wrap:wrap;}
+  nav.tabs button{
+    background:transparent;border:none;color:#d3ece7;padding:12px 16px;font-size:13.5px;cursor:pointer;
+    border-bottom:3px solid transparent;font-weight:600;letter-spacing:.3px;
+  }
+  nav.tabs button:hover{color:#fff;background:rgba(255,255,255,.06);}
+  nav.tabs button.active{color:#fff;border-bottom-color:var(--amber);}
+  main{padding:18px 22px 60px;max-width:1400px;margin:0 auto;}
+  .page{display:none;}
+  .page.active{display:block;}
+  .cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:14px;margin-bottom:18px;}
+  .card{background:var(--panel);border-radius:10px;padding:16px 18px;border:1px solid var(--line);
+    border-top:4px solid var(--steel);box-shadow:0 1px 3px rgba(20,40,70,.06);}
+  .card.amber{border-top-color:var(--amber);}
+  .card.purple{border-top-color:var(--return);}
+  .card.green{border-top-color:var(--good);}
+  .card.gray{border-top-color:var(--nonmovable);}
+  .card .label{font-size:11.5px;text-transform:uppercase;letter-spacing:.6px;color:var(--muted);font-weight:700;}
+  .card .value{font-size:26px;font-weight:800;color:var(--navy);margin-top:6px;}
+  .card .value small{font-size:13px;font-weight:600;color:var(--muted);}
+  .panel{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:16px 18px;margin-bottom:18px;}
+  .panel h2{margin:0 0 12px;font-size:15px;color:var(--navy);border-left:4px solid var(--amber);padding-left:10px;}
+  .row{display:flex;gap:12px;flex-wrap:wrap;align-items:flex-end;}
+  .field{display:flex;flex-direction:column;gap:4px;min-width:140px;}
+  .field label{font-size:11.5px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.4px;}
+  .field.grow{flex:1;}
+  select,input[type=text],input[type=number],input[type=date],input[type=file]{
+    padding:8px 9px;border:1px solid #c6d2e0;border-radius:6px;font-size:13.5px;background:#fff;color:var(--ink);
+  }
+  select:focus,input:focus{outline:2px solid var(--steel);outline-offset:1px;}
+  .addbtn{background:var(--steel);color:#fff;border:none;width:32px;height:32px;border-radius:6px;font-size:16px;cursor:pointer;line-height:1;}
+  .addbtn:hover{background:var(--navy);}
+  .inline-add{display:flex;gap:6px;}
+  button.btn{background:var(--steel);color:#fff;border:none;padding:9px 16px;border-radius:6px;font-size:13.5px;
+    font-weight:700;cursor:pointer;letter-spacing:.2px;}
+  button.btn:hover{background:var(--navy);}
+  button.btn.amber{background:var(--amber);}
+  button.btn.amber:hover{background:#b0561a;}
+  button.btn.outline{background:#fff;color:var(--steel);border:1px solid var(--steel);}
+  button.btn.outline:hover{background:#e7f3f2;}
+  button.btn.danger{background:var(--bad);}
+  button.btn.danger:hover{background:#8f2727;}
+  button.btn.purple{background:var(--return);}
+  button.btn.purple:hover{background:#5f3a8c;}
+  button.btn.sm{padding:5px 10px;font-size:12px;}
+  button.btn:disabled{background:#a9b7c6;cursor:not-allowed;}
+  table{width:100%;border-collapse:collapse;font-size:13px;margin-top:10px;}
+  table th{background:var(--navy);color:#fff;padding:8px 8px;text-align:left;font-size:11.5px;
+    text-transform:uppercase;letter-spacing:.3px;position:sticky;top:0;}
+  table td{padding:7px 8px;border-bottom:1px solid var(--line);}
+  table tbody tr:hover{background:#e7f3f2;}
+  .table-wrap{max-height:480px;overflow:auto;border:1px solid var(--line);border-radius:8px;}
+  .pill{display:inline-block;padding:2px 8px;border-radius:20px;font-size:11px;font-weight:700;color:#fff;}
+  .pill.stock{background:var(--stock);}
+  .pill.dispatched{background:var(--dispatch);}
+  .pill.returned{background:var(--return);}
+  .pill.nonmovable{background:var(--nonmovable);}
+  .toolbar{display:flex;gap:8px;flex-wrap:wrap;margin:10px 0;align-items:center;}
+  .toolbar .spacer{flex:1;}
+  .itemcode{font-family:'Courier New',monospace;font-weight:700;color:var(--navy);}
+  .group-block{border:1px solid var(--line);border-radius:8px;margin-bottom:10px;overflow:hidden;}
+  .group-head{background:#eaf0f8;padding:8px 12px;font-weight:700;font-size:13px;color:var(--navy);
+    display:flex;justify-content:space-between;cursor:pointer;align-items:center;}
+  .group-head{flex-wrap:wrap;gap:4px;}
+  .group-head .meta{font-weight:500;color:var(--muted);font-size:12px;}
+  .group-body{padding:0;}
+  .group-body.collapsed{display:none;}
+  .toast{position:fixed;bottom:20px;right:20px;background:var(--navy);color:#fff;padding:12px 18px;
+    border-radius:8px;font-size:13.5px;box-shadow:0 4px 14px rgba(0,0,0,.25);z-index:999;display:none;}
+  .muted{color:var(--muted);font-size:12px;}
+  .cart-box{background:#fbf4ea;border:1px dashed var(--amber);border-radius:8px;padding:10px 12px;margin-top:10px;}
+  .empty{padding:20px;text-align:center;color:var(--muted);font-style:italic;}
+  .subtabs{display:flex;gap:6px;margin-bottom:12px;flex-wrap:wrap;}
+  .subtabs button{background:#eaf0f8;border:1px solid var(--line);color:var(--navy);padding:7px 14px;
+    border-radius:20px;font-size:12.5px;font-weight:700;cursor:pointer;}
+  .subtabs button.active{background:var(--steel);color:#fff;border-color:var(--steel);}
+  @media print{
+    header.topbar, nav.tabs, .no-print{display:none !important;}
+    body{background:#fff;}
+    main{padding:0;max-width:100%;}
+    .page{display:none !important;}
+    .page.printing{display:block !important;}
+    .table-wrap{max-height:none;overflow:visible;border:none;}
+    #printArea{width:100%;}
+  }
+  #printArea{display:none;}
+  #printArea.show{display:block;}
+  /* ===== Bag label: one bag per A4 landscape page, big centred stacked lines ===== */
+  #printArea .bag-label{box-sizing:border-box;width:100%;height:186mm;border:3px solid #0f3d3e;border-radius:4mm;display:flex;flex-direction:column;align-items:center;justify-content:space-between;padding:6mm 8mm;text-align:center;overflow:hidden;break-after:page;page-break-after:always;}
+  #printArea .bag-label:last-child{break-after:auto;page-break-after:auto;}
+  #printArea .bag-label .bl-top{width:100%;border-bottom:3px solid var(--amber);padding-bottom:4mm;}
+  #printArea .bag-label .bl-co{display:flex;align-items:center;justify-content:center;gap:5mm;font-size:26pt;font-weight:800;color:#0f3d3e;line-height:1.1;}
+  #printArea .bag-label .bl-co img{height:16mm;width:16mm;object-fit:contain;-webkit-print-color-adjust:exact;print-color-adjust:exact;}
+  #printArea .bag-label .bl-code{font-weight:800;margin-top:3mm;white-space:nowrap;font-family:Arial,Helvetica,sans-serif;color:#000;line-height:1.15;}
+  #printArea .bag-label .bl-lines{flex:1;width:100%;display:flex;flex-direction:column;align-items:center;justify-content:space-evenly;}
+  #printArea .bag-label .bl-line{white-space:nowrap;line-height:1.1;font-family:Arial,Helvetica,sans-serif;color:#333;}
+  #printArea .bag-label .bl-line b{font-weight:800;color:#000;}
+  #printArea .print-head{display:flex;align-items:center;justify-content:center;gap:12px;border-bottom:2px solid var(--amber);padding-bottom:6px;margin-bottom:4px;}
+  #printArea .print-logo{height:56px;width:56px;object-fit:contain;flex:none;-webkit-print-color-adjust:exact;print-color-adjust:exact;}
+  #printArea .print-head > h2{border-bottom:none;padding-bottom:0;margin:0;}
+  #printArea h2{color:var(--navy);border-bottom:2px solid var(--amber);padding-bottom:6px;margin-bottom:4px;text-align:center;}
+  #printArea .print-sub{font-size:15px;font-weight:700;color:var(--navy);margin-bottom:2px;text-align:center;}
+  #printArea .print-meta{font-size:12px;color:var(--muted);margin-bottom:10px;text-align:center;}
+  #printArea tfoot td{font-weight:700;background:#eaf0f8;}
+  /* ===== every print: centred, fits the page width, follows the centred heading ===== */
+  #printArea{text-align:center;}
+  #printArea table{width:100%;max-width:100%;margin:8px auto 0;table-layout:auto;border-collapse:collapse;font-size:var(--pfs,11px);}
+  #printArea table th, #printArea table td{text-align:center !important;vertical-align:middle;padding:5px 6px;
+    white-space:normal;word-break:break-word;overflow-wrap:anywhere;border:1px solid #c6d2e0;}
+  #printArea table th{position:static;font-size:inherit;-webkit-print-color-adjust:exact;print-color-adjust:exact;}
+  #printArea table tr{break-inside:avoid;page-break-inside:avoid;}
+  #printArea table thead{display:table-header-group;}
+  #printArea .table-wrap{overflow:visible;max-height:none;border:none;}
+  #printArea .dash-print table th, #printArea .dash-print table td{text-align:center !important;}
+  #printArea .dash-print .dash-sec{text-align:center;border-left:none;border-bottom:2px solid var(--amber);padding:0 0 4px;}
+  #printArea .dash-print .dash-note{text-align:center;}
+  #printArea .dash-print svg{display:block;margin:0 auto;max-width:100%;height:auto;}
+
+  /* ===== Dashboard page ===== */
+  .card.navy{border-top-color:var(--navy);}
+  .dash-kpi{grid-template-columns:repeat(auto-fit,minmax(150px,1fr));}
+  .dash-kpi .value{font-size:20px;}
+  .dash-kpi .value small{font-size:12px;}
+  .dash-grid{display:grid;grid-template-columns:380px 1fr;gap:16px;align-items:start;}
+  @media (max-width:980px){ .dash-grid{grid-template-columns:1fr;} }
+  .dash-chart-title{font-size:12.5px;font-weight:700;color:var(--navy);margin:0 0 6px;}
+  .dash-chart svg{display:block;width:100%;height:auto;}
+  .dash-scroll{overflow-x:auto;}
+  .dash-scroll > svg{min-width:620px;}
+  table.dash-table th.num, table.dash-table td.num{text-align:right;font-variant-numeric:tabular-nums;}
+  table.dash-table td.neg{color:var(--bad);}
+  table.dash-table tr.dash-total td{font-weight:700;background:#eaf0f8;border-top:2px solid var(--navy);}
+  .dash-note{font-size:12px;color:var(--muted);margin:10px 0 0;line-height:1.5;}
+  .dash-warn{background:#fdf3e4;border:1px solid #f0d3a6;color:#7a4a10;padding:9px 12px;border-radius:8px;font-size:12.5px;margin-bottom:14px;}
+  .dash-print, .dash-print *{-webkit-print-color-adjust:exact;print-color-adjust:exact;}
+  .dash-print .cards{margin-bottom:12px;}
+  .dash-print .dash-sec{font-size:14px;font-weight:700;color:var(--navy);border-left:4px solid var(--amber);padding-left:8px;margin:14px 0 6px;}
+  .dash-print .dash-grid{grid-template-columns:340px minmax(0,1fr);}
+  .dash-print .dash-block{break-inside:avoid;}
+  .dash-print .dash-tbl{break-before:page;break-after:avoid;}
+  .dash-print table{font-size:11px;}
+  .dash-print tr{break-inside:avoid;}
+  .dash-print .table-wrap{max-height:none;overflow:visible;border:none;}
+</style>
+</head>
+<body>
+
+<header class="topbar">
+  <div class="brand">
+    <img class="brand-logo" id="brandLogo" alt="">
+    <div>
+      <h1>POLYMER PRODUCTS CO LLC</h1>
+      <div class="sub">STOCK &amp; DISPATCH MANAGEMENT SYSTEM — MONO / DANLINE ROPE DIVISION</div>
+    </div>
+  </div>
+  <div class="muted" id="clockLine" style="color:#c9e6e0;font-size:12px;"></div>
+</header>
+
+<nav class="tabs no-print">
+  <button data-page="home" class="active">🏠 Home</button>
+  <button data-page="dashboard">📊 Dashboard</button>
+  <button data-page="stockEntry">📥 Stock Entry</button>
+  <button data-page="dispatch">🚚 Dispatch</button>
+  <button data-page="dispatchList">📋 Dispatch List</button>
+  <button data-page="customerDispatch">👥 Customer Wise Dispatch</button>
+  <button data-page="returned">↩ Returned Coils</button>
+  <button data-page="nonmovable">🚫 Non-Movable Stock</button>
+  <button data-page="bagpacking">🎒 Bag Packing</button>
+</nav>
+
+<main>
+
+<!-- ================= HOME PAGE ================= -->
+<div class="page active" id="page-home">
+  <div class="cards">
+    <div class="card">
+      <div class="label">Total Stock (Available)</div>
+      <div class="value" id="homeStockQty">0 <small>kg</small></div>
+      <div class="muted" id="homeStockCoils">0 coils</div>
+    </div>
+    <div class="card amber">
+      <div class="label">Total Dispatched</div>
+      <div class="value" id="homeDispQty">0 <small>kg</small></div>
+      <div class="muted" id="homeDispCoils">0 coils</div>
+    </div>
+    <div class="card purple">
+      <div class="label">Total Returned</div>
+      <div class="value" id="homeRetQty">0 <small>kg</small></div>
+      <div class="muted" id="homeRetCoils">0 coils</div>
+    </div>
+    <div class="card gray">
+      <div class="label">Non-Movable Stock</div>
+      <div class="value" id="homeNonMovQty">0 <small>kg</small></div>
+      <div class="muted" id="homeNonMovCoils">0 coils</div>
+    </div>
+    <div class="card green">
+      <div class="label">Overall Balance (Stock in Hand)</div>
+      <div class="value" id="homeBalanceQty">0 <small>kg</small></div>
+      <div class="muted">Received − Dispatched + Returned + Non-Movable</div>
+    </div>
+  </div>
+
+  <div class="panel">
+    <h2>Stock Summary — Item Code Wise</h2>
+    <div class="table-wrap">
+      <table id="stockSummaryTable">
+        <thead><tr><th class="no-print"><input type="checkbox" id="stockSummarySelectAll" onclick="checkAll(this,'stockSummaryChk')"></th><th>Item Code</th><th>Type</th><th>Colour</th><th>Size</th><th>Construction</th><th>Tracer</th><th>Length</th><th>Coils</th><th>Total Weight (Kg)</th><th>Average Weight / Coil (Kg)</th></tr></thead>
+        <tbody></tbody>
+        <tfoot></tfoot>
+      </table>
+    </div>
+    <div class="toolbar no-print">
+      <span class="muted" style="font-size:12px;">Tick item codes to print/export only those — leave all unticked to include everything.</span>
+      <span class="spacer"></span>
+      <button class="btn outline sm" onclick="printStockSummary()">🖶 Print</button>
+      <button class="btn sm" onclick="exportStockSummaryExcel()">⬇ Excel</button>
+      <button class="btn amber sm" onclick="exportStockSummaryPDF()">⬇ PDF</button>
+    </div>
+  </div>
+
+  <div class="panel">
+    <h2>Overall Balance Sheet — Material Type / Product Wise</h2>
+    <div class="table-wrap">
+      <table id="balanceSheetTable">
+        <thead><tr><th>Material Type</th><th>Product</th><th>Coils in Stock</th><th>Stock Wt (Kg)</th><th>Dispatched Wt (Kg)</th><th>Returned Wt (Kg)</th><th>Non-Movable Wt (Kg)</th><th>Balance Wt (Kg)</th></tr></thead>
+        <tbody></tbody>
+        <tfoot></tfoot>
+      </table>
+    </div>
+    <div class="toolbar no-print">
+      <span class="spacer"></span>
+      <button class="btn outline sm" onclick="printHome()">🖶 Print</button>
+      <button class="btn sm" onclick="exportBalanceSheetExcel()">⬇ Excel</button>
+      <button class="btn amber sm" onclick="exportHomePDF()">⬇ PDF</button>
+    </div>
+  </div>
+
+  <div class="panel no-print">
+    <h2>Import / Export — Full Database</h2>
+    <div class="toolbar">
+      <button class="btn" onclick="exportAllExcel()" title="Full database in one Excel: stock, dispatch list each day, returned, non-movable, bag packing each day">⬇ Export All Data (Excel)</button>
+      <button class="btn amber" onclick="exportHomePDF()">⬇ Export Balance Sheet (PDF)</button>
+      <button class="btn outline" onclick="document.getElementById('importAllFile').click()">⬆ Import Data (Excel)</button>
+      <input type="file" id="importAllFile" accept=".xlsx,.xls" style="display:none" onchange="importAllExcel(event)">
+      <button class="btn outline" onclick="printHome()">🖶 Print Summary</button>
+      <button class="btn purple" onclick="recodeOldStock()">🔁 Re-code Old Stock (Split by Length)</button>
+      <button class="btn danger" onclick="clearAllData()">🗑 Clear All Data (Reset)</button>
+      <span class="muted">Import expects a workbook exported from this same system (sheets: Stock, Dispatched, Returned, NonMovable, Dispatches). "Re-code" splits older item codes into separate lots by length — export a backup first.</span>
+    </div>
+  </div>
+
+  <div class="panel">
+    <h2>Recent Stock Entries</h2>
+    <div class="table-wrap"><table id="recentStockTable">
+      <thead><tr><th>Serial</th><th>Item Code</th><th>Colour</th><th>Size</th><th>Qty</th><th>Date</th></tr></thead>
+      <tbody></tbody>
+    </table></div>
+  </div>
+
+  <div class="panel">
+    <h2>Recent Dispatches</h2>
+    <div class="table-wrap"><table id="recentDispatchTable">
+      <thead><tr><th>Dispatch No.</th><th>Date</th><th>Coils</th><th>Total Qty</th><th>Remarks</th></tr></thead>
+      <tbody></tbody>
+    </table></div>
+  </div>
+
+  <div class="panel">
+    <h2>Dispatch Details — Item Code Wise (Select Date)</h2>
+    <p class="muted">Pick a date to see everything dispatched that day — one row per item code, with total coils, total quantity, and average coil weight.</p>
+    <div class="row no-print" style="margin-bottom:10px;">
+      <div class="field"><label>Select Date</label><input type="date" id="home_dispatchDate" onchange="renderHomeDispatchDetail()"></div>
+      <div class="field"><label>&nbsp;</label><button class="btn outline sm" onclick="document.getElementById('home_dispatchDate').value='';renderHomeDispatchDetail();">Show All Dates</button></div>
+    </div>
+    <div class="table-wrap">
+      <table id="homeDispatchDetailTable">
+        <thead><tr><th class="no-print"><input type="checkbox" id="homeDispSelectAll" onclick="checkAll(this,'homeDispChk')"></th><th>Item Code</th><th>Customer</th><th>Type</th><th>Colour</th><th>Size</th><th>Length</th><th>Coils</th><th>Total Quantity (Kg)</th><th>Average Coil Weight (Kg)</th><th class="no-print">Actions</th></tr></thead>
+        <tbody></tbody>
+        <tfoot></tfoot>
+      </table>
+    </div>
+    <p class="muted no-print">Edit / Delete acts on all coils dispatched under that item code on the selected date. Select a specific date (not "All Dates") to enable these actions.</p>
+    <div class="toolbar no-print">
+      <span class="muted" style="font-size:12px;">Tick item codes to print/export only those — leave all unticked to include everything.</span>
+      <span class="spacer"></span>
+      <button class="btn outline sm" onclick="printHomeDispatchDetail()">🖶 Print</button>
+      <button class="btn outline sm" onclick="printHomeDeliveryNote()" title="Print Delivery Note (A4 landscape) for the selected date">📄 Delivery Note</button>
+      <button class="btn sm" onclick="exportHomeDeliveryNoteExcel()" title="Export Delivery Note to Excel">⬇ Delivery Note Excel</button>
+      <button class="btn amber sm" onclick="exportHomeDeliveryNotePDF()" title="Export Delivery Note to PDF">⬇ Delivery Note PDF</button>
+      <button class="btn sm" onclick="exportHomeDispatchDetailExcel()">⬇ Excel</button>
+      <button class="btn amber sm" onclick="exportHomeDispatchDetailPDF()">⬇ PDF</button>
+    </div>
+    <div class="row no-print" style="margin-top:14px;padding-top:12px;border-top:1px dashed var(--line);">
+      <div class="field"><label>Month Wise Report</label><input type="month" id="home_reportMonth"></div>
+      <div class="field"><label>&nbsp;</label><button class="btn outline sm" onclick="printHomeMonthReport()">🖶 Print Month Report</button></div>
+      <div class="field"><label>&nbsp;</label><button class="btn amber sm" onclick="exportHomeMonthReportPDF()">⬇ PDF Month Report</button></div>
+    </div>
+  </div>
+</div>
+
+<!-- ================= DASHBOARD PAGE ================= -->
+<div class="page" id="page-dashboard">
+  <div class="panel no-print">
+    <h2>Dashboard — Stock &amp; Dispatch</h2>
+    <div class="subtabs" id="dashTabs">
+      <button data-dview="overall" class="active">Overall</button>
+      <button data-dview="monthly">Monthly Wise</button>
+      <button data-dview="daily">Daily Wise</button>
+    </div>
+    <div class="row" id="dashFilterRow" style="margin-bottom:6px;"></div>
+    <div class="toolbar" style="align-items:flex-end;border-top:1px solid var(--line);padding-top:10px;">
+      <div class="field"><label>Month Wise — Select Month</label><select id="dash_printMonth"></select></div>
+      <button class="btn outline sm" onclick="dashPrintMonth()">🖶 Print Month</button>
+      <button class="btn amber sm" onclick="dashPdfMonth()">⬇ PDF — Month</button>
+    </div>
+    <div class="toolbar">
+      <span class="spacer"></span>
+      <button class="btn outline sm" onclick="dashPrint()">🖶 Print — This View</button>
+      <button class="btn amber sm" onclick="dashPdfView()">⬇ PDF — This View</button>
+      <button class="btn amber sm" onclick="dashPdfFull()">⬇ PDF — Overall Dashboard</button>
+      <button class="btn sm" onclick="dashExportView()">⬇ Excel — This View</button>
+      <button class="btn sm" onclick="dashExportFull()">⬇ Excel — Full Dashboard</button>
+    </div>
+  </div>
+  <div id="dashBody"></div>
+</div>
+
+<!-- ================= STOCK ENTRY PAGE ================= -->
+<div class="page" id="page-stockEntry">
+  <div class="no-print" id="stockSelectionBar" style="position:sticky; top:0; z-index:20; background:var(--amber); color:#fff; padding:10px 16px; margin-bottom:14px; border-radius:8px; font-weight:700; display:flex; gap:24px; align-items:center; box-shadow:0 2px 8px rgba(0,0,0,.15);">
+    <span>🧮 Coils Selected: <span id="selCoilCount">0</span></span>
+    <span>⚖ Total Weight: <span id="selCoilWeight">0.000</span> Kg</span>
+    <span class="muted" style="color:#fdeecb;font-weight:500;">Tick coils below to see live totals here</span>
+  </div>
+  <div class="panel no-print">
+    <h2>Step 1 — Set Item Details (Material Type → Length Unit)</h2>
+    <div class="row">
+      <div class="field">
+        <label>Material Type</label>
+        <select id="f_resin"><option>PP</option><option>HDPE</option></select>
+      </div>
+      <div class="field">
+        <label>Product Type</label>
+        <select id="f_product"><option>Danline</option><option>Mono</option></select>
+      </div>
+      <div class="field grow">
+        <label>Colour</label>
+        <div class="inline-add">
+          <select id="f_colour" style="flex:1"></select>
+          <button class="addbtn" onclick="addOption('colours','f_colour')" title="Add new colour">+</button>
+        </div>
+      </div>
+      <div class="field">
+        <label>Size (mm)</label>
+        <select id="f_size"></select>
+      </div>
+      <div class="field grow">
+        <label>Construction</label>
+        <div class="inline-add">
+          <select id="f_construction" style="flex:1"></select>
+          <button class="addbtn" onclick="addOption('constructions','f_construction')" title="Add new construction">+</button>
+        </div>
+      </div>
+      <div class="field grow">
+        <label>Tracer</label>
+        <div class="inline-add">
+          <select id="f_tracer" style="flex:1"></select>
+          <button class="addbtn" onclick="addOption('tracers','f_tracer')" title="Add new tracer">+</button>
+        </div>
+      </div>
+      <div class="field">
+        <label>Length (fixed value)</label>
+        <input type="number" id="f_length" min="0" step="0.01" placeholder="e.g. 220" onkeydown="if(event.key==='Enter'){event.preventDefault();lockItemDetails();}">
+      </div>
+      <div class="field">
+        <label>Length Unit</label>
+        <select id="f_lengthUnit"><option>Yds</option><option>Mtrs</option></select>
+      </div>
+      <div class="field">
+        <label>Entry Date</label>
+        <input type="date" id="f_date">
+      </div>
+      <div class="field">
+        <label>Item Code (auto)</label>
+        <input type="text" id="f_itemCodePreview" readonly style="background:#f0f3f7;font-family:'Courier New',monospace;font-weight:700;min-width:220px;">
+      </div>
+      <div class="field">
+        <label>&nbsp;</label>
+        <button class="btn amber" id="lockBtn" onclick="lockItemDetails()">🔒 Set Item Details</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="panel no-print" id="addCoilPanel" style="display:none;border-top:4px solid var(--good);">
+    <h2>Step 2 — Add Coils One by One <span class="muted" id="lockedCodeLabel"></span></h2>
+    <div class="row">
+      <div class="field">
+        <label>Coil Weight (Kg)</label>
+        <input type="number" id="c_weight" min="0" step="0.001" placeholder="e.g. 25.123" onkeydown="if(event.key==='Enter'){event.preventDefault();addSingleCoil();}">
+      </div>
+      <div class="field">
+        <label>&nbsp;</label>
+        <button class="btn" onclick="addSingleCoil()">➕ Add Coil</button>
+      </div>
+      <div class="field">
+        <label>&nbsp;</label>
+        <button class="btn outline" onclick="unlockItemDetails()">✏ Change Item Details</button>
+      </div>
+    </div>
+    <div class="muted" style="margin-top:6px;">Length fixed at <strong id="lockedLengthLabel"></strong> for every coil in this batch. Coils added so far: <strong id="lockedCoilCount">0</strong></div>
+    <div class="table-wrap" style="max-height:220px;margin-top:8px;">
+      <table><thead><tr><th>Serial</th><th>Qty</th><th>Weight (Kg)</th><th></th></tr></thead><tbody id="sessionCoilBody"></tbody></table>
+    </div>
+  </div>
+
+  <div class="panel">
+    <h2>Stock Register</h2>
+    <div class="subtabs no-print">
+      <button data-mode="all" class="active">All Stock</button>
+      <button data-mode="date">Date Wise</button>
+      <button data-mode="itemcode">Item Code Wise</button>
+      <button data-mode="selection">Selection Wise (by type/size/length)</button>
+    </div>
+    <div class="row no-print" id="stockFilterRow" style="margin-bottom:6px;"></div>
+    <div id="stockTableHost"></div>
+    <div class="toolbar no-print">
+      <button class="btn danger sm" onclick="deleteSelectedStock()">🗑 Delete Selected</button>
+      <button class="btn sm" style="background:var(--nonmovable)" onclick="moveSelectedToNonMovable()">🚫 Move Selected to Non-Movable</button>
+      <span class="spacer"></span>
+      <button class="btn outline sm" onclick="printFiltered('stock')">🖶 Print</button>
+      <button class="btn sm" onclick="exportFilteredExcel('stock')">⬇ Excel</button>
+      <button class="btn amber sm" onclick="exportFilteredPDF('stock')">⬇ PDF</button>
+    </div>
+  </div>
+</div>
+
+<!-- ================= DISPATCH PAGE ================= -->
+<div class="page" id="page-dispatch">
+  <div class="panel no-print">
+    <h2>Create Dispatch</h2>
+    <div class="subtabs">
+      <button data-dmode="coil" class="active">Select Coil Wise</button>
+      <button data-dmode="itemcode">Select Item Code Wise</button>
+      <button data-dmode="date">Select Date Wise</button>
+    </div>
+    <div class="row" id="dispatchFilterRow" style="margin-bottom:6px;"></div>
+    <div id="dispatchPickHost"></div>
+
+    <div class="cart-box">
+      <strong>Dispatch Cart</strong> — <span id="cartCount">0</span> coil(s) selected, total weight <span id="cartQty">0</span> kg
+      <div class="table-wrap" style="max-height:220px;margin-top:8px;">
+        <table><thead><tr><th>Serial</th><th>Item Code</th><th>Size</th><th>Length</th><th>Weight (Kg)</th><th></th></tr></thead><tbody id="cartBody"></tbody></table>
+      </div>
+      <div class="row" style="margin-top:10px;">
+        <div class="field"><label>Dispatch No. *</label><input type="text" id="d_no" placeholder="e.g. DN-001" style="min-width:140px;"></div>
+        <div class="field"><label>Dispatch Date</label><input type="date" id="d_date"></div>
+        <div class="field"><label>Customer Name / Code (optional)</label><input type="text" id="d_customer" list="customerList" placeholder="e.g. ABC Trading / C-101" style="min-width:200px;"><datalist id="customerList"></datalist></div>
+        <div class="field grow"><label>Remarks / To</label><input type="text" id="d_remarks" placeholder="Customer / vehicle / notes"></div>
+        <div class="field"><label>&nbsp;</label><button class="btn amber" onclick="confirmDispatch()">🚚 Confirm Dispatch</button></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ================= DISPATCH LIST PAGE ================= -->
+<div class="page" id="page-dispatchList">
+  <div class="panel">
+    <h2>Dispatch List — Daily Wise</h2>
+    <div class="toolbar no-print">
+      <div class="field"><label>Filter by Date</label><input type="date" id="dl_dateFilter" onchange="renderDispatchList()"></div>
+      <button class="btn outline sm" onclick="document.getElementById('dl_dateFilter').value='';renderDispatchList()">Clear Filter</button>
+      <span class="spacer"></span>
+      <button class="btn outline sm" onclick="printDispatchListCoilWise()">🖶 Print (Coil Wise)</button>
+      <button class="btn outline sm" onclick="printDispatchListItemCodeWise()">🖶 Print (Item Code Wise)</button>
+      <button class="btn sm" onclick="exportDispatchListExcel()">⬇ Excel</button>
+      <button class="btn sm" onclick="exportDispatchImportExcel()" title="Coil-wise Excel in import format (respects the date filter)">⬇ Export Excel (Import Format)</button>
+      <button class="btn outline sm" onclick="document.getElementById('dlImportFile').click()" title="Import dispatches from Excel">⬆ Import Excel</button>
+      <button class="btn outline sm" onclick="downloadDispatchTemplate()" title="Blank Excel template">⬇ Template</button>
+      <input type="file" id="dlImportFile" accept=".xlsx,.xls" style="display:none" onchange="importDispatchExcel(event)">
+      <button class="btn sm" style="background:#c0392b;border-color:#c0392b;color:#fff;" onclick="clearAllDispatches()" title="Delete ALL dispatch records (export a backup first)">🗑 Clear All</button>
+      <button class="btn amber sm" onclick="exportDispatchListPDF()" title="Coil-wise PDF (respects the date filter) - can be imported back with Import PDF">⬇ Export PDF</button>
+      <button class="btn outline sm" onclick="document.getElementById('dlImportPdfFile').click()" title="Import dispatches from a PDF exported by this system">⬆ Import PDF</button>
+      <input type="file" id="dlImportPdfFile" accept=".pdf,application/pdf" style="display:none" onchange="importDispatchPDF(event)">
+      <button class="btn sm" onclick="exportEachDispatchSeparately('excel')" title="One Excel file per Dispatch No. (respects the date filter)">⬇ Excel (Each Dispatch No.)</button>
+      <button class="btn amber sm" onclick="exportEachDispatchSeparately('pdf')" title="One PDF file per Dispatch No. (respects the date filter)">⬇ PDF (Each Dispatch No.)</button>
+    </div>
+    <div class="no-print" style="margin-bottom:10px;">
+      <div class="muted" style="font-size:12px;margin-bottom:4px;">Tick item codes to include in Coil Wise print — leave all unticked to include everything.</div>
+      <div class="row" style="flex-wrap:wrap;gap:8px;align-items:center;">
+        <label style="display:flex;align-items:center;gap:4px;font-weight:700;font-size:12.5px;"><input type="checkbox" id="dlItemCodeSelectAll" onclick="checkAll(this,'dlItemCodeChk')"> Select All</label>
+        <div id="dlItemCodeChecklist" style="display:flex;flex-wrap:wrap;gap:8px;"></div>
+      </div>
+    </div>
+    <div id="dispatchListHost"></div>
+  </div>
+
+  <div class="panel">
+    <h2>Total Dispatch — Date Wise Summary</h2>
+    <p class="muted">Total dispatches, coils and weight per day. Respects the date filter above.</p>
+    <div class="table-wrap">
+      <table id="totalDispatchDateTable">
+        <thead><tr><th>Date</th><th>Dispatches</th><th>Coils</th><th>Total Weight (Kg)</th></tr></thead>
+        <tbody></tbody>
+        <tfoot></tfoot>
+      </table>
+    </div>
+    <div class="toolbar no-print">
+      <span class="spacer"></span>
+      <button class="btn outline sm" onclick="printTotalDispatchDate()">🖶 Print</button>
+      <button class="btn sm" onclick="exportTotalDispatchDateExcel()">⬇ Excel</button>
+    </div>
+  </div>
+
+  <div class="panel">
+    <h2>Item Code Wise Dispatch Summary — Per Day</h2>
+    <p class="muted">Coils dispatched per day, broken down by item code, with total and average coil weight. Respects the date filter above.</p>
+    <div class="no-print" style="margin-bottom:10px;">
+      <div class="muted" style="font-size:12px;margin-bottom:4px;">Tick item codes to print/export only those — leave all unticked to include everything.</div>
+      <div class="row" style="flex-wrap:wrap;gap:8px;align-items:center;">
+        <label style="display:flex;align-items:center;gap:4px;font-weight:700;font-size:12.5px;"><input type="checkbox" id="idsSelectAll" onclick="checkAll(this,'idsChk')"> Select All</label>
+        <div id="idsItemCodeChecklist" style="display:flex;flex-wrap:wrap;gap:8px;"></div>
+      </div>
+    </div>
+    <div class="table-wrap">
+      <table id="itemCodeDaySummaryTable">
+        <thead><tr><th>Date</th><th>Item Code</th><th>Customer</th><th>Size</th><th>Length</th><th>Coils</th><th>Total Weight (Kg)</th><th>Average Weight / Coil (Kg)</th><th class="no-print">Actions</th></tr></thead>
+        <tbody></tbody>
+        <tfoot></tfoot>
+      </table>
+    </div>
+    <div class="toolbar no-print">
+      <span class="spacer"></span>
+      <button class="btn outline sm" onclick="printItemCodeDaySummary()">🖶 Print</button>
+      <button class="btn sm" onclick="exportItemCodeDaySummaryExcel()">⬇ Excel</button>
+    </div>
+  </div>
+</div>
+
+<!-- ================= CUSTOMER WISE DISPATCH PAGE ================= -->
+<div class="page" id="page-customerDispatch">
+  <div class="panel">
+    <h2>Customer Wise Dispatch List</h2>
+    <p class="muted no-print">The customer name / code entered on the Dispatch page (or edited from Home) appears here automatically. Each item code shows only its number of coils and total quantity.</p>
+    <div class="row no-print" style="margin-bottom:10px;">
+      <div class="field"><label>Customer</label><select id="cw_customer" onchange="renderCustomerDispatch()" style="min-width:200px;"></select></div>
+      <div class="field"><label>From Date</label><input type="date" id="cw_from" onchange="renderCustomerDispatch()"></div>
+      <div class="field"><label>To Date</label><input type="date" id="cw_to" onchange="renderCustomerDispatch()"></div>
+      <div class="field"><label>&nbsp;</label><button class="btn outline sm" onclick="document.getElementById('cw_from').value='';document.getElementById('cw_to').value='';renderCustomerDispatch();">Show All Dates</button></div>
+      <div class="field"><label>&nbsp;</label><button class="btn outline sm" onclick="printCustomerDispatch()">🖶 Print</button></div>
+      <div class="field"><label>&nbsp;</label><button class="btn amber sm" onclick="exportCustomerDispatchPDF()">⬇ PDF</button></div>
+      <div class="field"><label>&nbsp;</label><button class="btn sm" onclick="exportCustomerDispatchExcel()">⬇ Excel</button></div>
+    </div>
+    <div id="cw_host"></div>
+  </div>
+</div>
+
+<!-- ================= RETURNED PAGE ================= -->
+<div class="page" id="page-returned">
+  <div class="panel">
+    <h2>Returned Coils Register</h2>
+    <p class="muted">Coils returned from a dispatch are kept here permanently for audit and are <strong>not</strong> automatically merged back into the main Stock Register. You can select coils below and either Re-Dispatch them, or Move them back to Stock if they're actually usable.</p>
+    <div class="table-wrap"><table>
+      <thead><tr><th class="no-print"><input type="checkbox" onclick="checkAll(this,'returnedChk')"></th><th>Serial</th><th>Item Code</th><th>Qty</th><th>Weight (Kg)</th><th>Return Date</th><th class="no-print">Del</th></tr></thead>
+      <tbody id="returnedBody"></tbody>
+    </table></div>
+    <div class="toolbar no-print">
+      <button class="btn danger sm" onclick="deleteSelectedReturned()">🗑 Delete Selected</button>
+      <button class="btn purple sm" onclick="moveSelectedToStock()">📦 Move Selected to Stock</button>
+      <span class="spacer"></span>
+      <button class="btn outline sm" onclick="printReturned()">🖶 Print</button>
+      <button class="btn sm" onclick="exportReturnedExcel()">⬇ Excel</button>
+    </div>
+    <div class="cart-box no-print">
+      <strong>Re-Dispatch Selected Returned Coils</strong>
+      <div class="row" style="margin-top:10px;">
+        <div class="field"><label>Dispatch No. *</label><input type="text" id="rd_no" placeholder="e.g. DN-002" style="min-width:140px;"></div>
+        <div class="field"><label>Re-Dispatch Date</label><input type="date" id="rd_date"></div>
+        <div class="field grow"><label>Remarks / To</label><input type="text" id="rd_remarks" placeholder="Customer / vehicle / notes"></div>
+        <div class="field"><label>&nbsp;</label><button class="btn amber" onclick="redispatchSelected()">🚚 Re-Dispatch Selected</button></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+
+<!-- ================= NON-MOVABLE STOCK PAGE ================= -->
+<div class="page" id="page-nonmovable">
+  <div class="panel">
+    <h2>Non-Movable Stock Register</h2>
+    <p class="muted">Coils moved here from the Stock Register (damaged, obsolete, or otherwise unfit for dispatch) are kept separately and excluded from the normal Stock Entry / Dispatch selection lists. Select coils below to send them back to regular Stock, or delete them permanently.</p>
+    <div class="table-wrap"><table>
+      <thead><tr><th class="no-print"><input type="checkbox" onclick="checkAll(this,'nonmovChk')"></th><th>Serial</th><th>Item Code</th><th>Material Type</th><th>Product</th><th>Colour</th><th>Size</th><th>Construction</th><th>Tracer</th><th>Unit</th><th>Qty</th><th>Weight (Kg)</th><th>Entry Date</th><th>Moved Date</th><th class="no-print">Del</th></tr></thead>
+      <tbody id="nonmovBody"></tbody>
+    </table></div>
+    <div class="toolbar no-print">
+      <button class="btn danger sm" onclick="deleteSelectedNonMovable()">🗑 Delete Selected</button>
+      <button class="btn purple sm" onclick="moveSelectedNonMovableToStock()">📦 Return Selected to Stock</button>
+      <span class="spacer"></span>
+      <button class="btn outline sm" onclick="printNonMovable()">🖶 Print</button>
+      <button class="btn sm" onclick="exportNonMovableExcel()">⬇ Excel</button>
+    </div>
+  </div>
+</div>
+
+
+<!-- ================= BAG PACKING PAGE (standalone, manual entry, date wise) ================= -->
+<div class="page" id="page-bagpacking">
+  <div class="panel no-print">
+    <h2>Bag Packing — Add Bag</h2>
+    <div class="row">
+      <div class="field"><label>Date</label><input type="date" id="bp_date"></div>
+      <div class="field"><label>Item Code</label><input type="text" id="bp_itemCode" list="bp_itemCodeList" placeholder="Select / type item code" style="width:220px;" autocomplete="off"><datalist id="bp_itemCodeList"></datalist></div>
+      <div class="field"><label>Colour</label>
+        <div style="display:flex;gap:6px;"><select id="bp_colour" style="min-width:130px;"></select><button class="addbtn" onclick="addOption('colours','bp_colour')" title="Add new colour">+</button></div>
+      </div>
+      <div class="field"><label>Bag No.</label><input type="text" id="bp_bagNo" placeholder="e.g. 1" style="width:80px;"></div>
+      <div class="field"><label>Dispatch No.</label><input type="text" id="bp_dispatchNo" placeholder="e.g. DN-001" style="width:120px;" autocomplete="off"></div>
+      <div class="field"><label>No. of Coils (in bag)</label><input type="number" id="bp_coils" min="0" step="1" placeholder="e.g. 5" style="width:110px;"></div>
+      <div class="field"><label>Total Quantity (Kg)</label><input type="number" id="bp_qty" min="0" step="0.001" placeholder="e.g. 25.500" style="width:130px;"></div>
+      <div class="field"><label>Rope Size</label><select id="bp_ropeSize" style="width:110px;"><option value="">Select</option><option value="1 mm">1 mm</option><option value="2 mm">2 mm</option><option value="3 mm">3 mm</option><option value="4 mm">4 mm</option><option value="5 mm">5 mm</option><option value="6 mm">6 mm</option><option value="7 mm">7 mm</option><option value="8 mm">8 mm</option><option value="9 mm">9 mm</option><option value="10 mm">10 mm</option><option value="11 mm">11 mm</option><option value="12 mm">12 mm</option><option value="13 mm">13 mm</option><option value="14 mm">14 mm</option><option value="15 mm">15 mm</option><option value="16 mm">16 mm</option><option value="17 mm">17 mm</option><option value="18 mm">18 mm</option><option value="19 mm">19 mm</option><option value="20 mm">20 mm</option><option value="21 mm">21 mm</option><option value="22 mm">22 mm</option><option value="23 mm">23 mm</option><option value="24 mm">24 mm</option><option value="25 mm">25 mm</option><option value="26 mm">26 mm</option><option value="27 mm">27 mm</option><option value="28 mm">28 mm</option><option value="29 mm">29 mm</option><option value="30 mm">30 mm</option><option value="31 mm">31 mm</option><option value="32 mm">32 mm</option></select></div>
+      <div class="field"><label>Length</label><input type="number" id="bp_length" min="0" step="0.01" placeholder="e.g. 220" style="width:100px;"></div>
+      <div class="field"><label>Length Unit</label><select id="bp_lengthUnit"><option>Yards</option><option>Meters</option></select></div>
+      <div class="field"><label>&nbsp;</label><button class="btn amber" id="bp_addBtn" onclick="addManualBag()">➕ Add Bag</button></div>
+      <div class="field"><label>&nbsp;</label><button class="btn outline" id="bp_cancelBtn" onclick="cancelBagEdit()" style="display:none;">✕ Cancel Edit</button></div>
+    </div>
+  </div>
+
+  <div class="panel no-print">
+    <h2>Print / Export — Per Day</h2>
+    <div class="row">
+      <div class="field"><label>Select Date</label><select id="bp_printDate" onchange="renderBagPrintCodes()" style="min-width:150px;"></select></div>
+      <div class="field grow"></div>
+      <div class="field"><label>&nbsp;</label><button class="btn outline sm" onclick="printBagPacking()">🖶 Print</button></div>
+      <div class="field"><label>&nbsp;</label><button class="btn outline sm" onclick="printBagDeliveryNoteSelected('Bag No')" title="Delivery Note listing bag no wise">📄 Delivery Note — Bag No Wise</button></div>
+      <div class="field"><label>&nbsp;</label><button class="btn outline sm" onclick="printBagDeliveryNoteSelected('Pallet No')" title="Delivery Note listing pallet no wise">📄 Delivery Note — Pallet No Wise</button></div>
+      <div class="field"><label>&nbsp;</label><button class="btn sm" onclick="exportBagDeliveryNoteSelectedExcel('Bag No')">⬇ DN Excel — Bag No Wise</button></div>
+      <div class="field"><label>&nbsp;</label><button class="btn sm" onclick="exportBagDeliveryNoteSelectedExcel('Pallet No')">⬇ DN Excel — Pallet No Wise</button></div>
+      <div class="field"><label>&nbsp;</label><button class="btn amber sm" onclick="exportBagDeliveryNoteSelectedPDF('Bag No')" title="Delivery Note PDF listing bag no wise">⬇ DN PDF — Bag No Wise</button></div>
+      <div class="field"><label>&nbsp;</label><button class="btn amber sm" onclick="exportBagDeliveryNoteSelectedPDF('Pallet No')" title="Delivery Note PDF listing pallet no wise">⬇ DN PDF — Pallet No Wise</button></div>
+      <div class="field"><label>&nbsp;</label><button class="btn sm" onclick="exportBagPackingExcel()">⬇ Excel</button></div>
+      <div class="field"><label>&nbsp;</label><button class="btn amber sm" onclick="exportBagPackingPDF()">⬇ Export PDF</button></div>
+      <div class="field"><label>&nbsp;</label><button class="btn outline sm" onclick="printBagItemSummary()" title="Item code wise summary with average weight per coil - ticked item codes only">🖶 Item Summary</button></div>
+      <div class="field"><label>&nbsp;</label><button class="btn sm" onclick="exportBagItemSummaryExcel()">⬇ Item Summary Excel</button></div>
+      <div class="field"><label>&nbsp;</label><button class="btn amber sm" onclick="exportBagItemSummaryPDF()" title="Item code wise summary PDF with average weight per coil">⬇ Item Summary PDF</button></div>
+    </div>
+    <div class="muted" style="font-size:12px;margin:8px 0 4px;">Tick item codes to print/export only those — leave all unticked to include everything for the selected day.</div>
+    <div id="bp_printCodes" style="display:flex;flex-wrap:wrap;gap:10px;"></div>
+  </div>
+
+  <div class="panel">
+    <h2>Bag Packing List — Date Wise</h2>
+    <div class="row no-print" style="margin-bottom:10px;">
+      <div class="field"><label>Filter by Date</label><input type="date" id="bp_filterDate" onchange="renderBagPacking()"></div>
+      <div class="field"><label>&nbsp;</label><button class="btn outline sm" onclick="document.getElementById('bp_filterDate').value='';renderBagPacking();">Show All Dates</button></div>
+    </div>
+    <div class="toolbar no-print" style="margin-bottom:10px;">
+      <button class="btn sm" onclick="exportBagImportExcel()" title="All bags (respects the date filter) in import format">⬇ Export Excel</button>
+      <button class="btn outline sm" onclick="document.getElementById('bpImportFile').click()" title="Import bags from Excel">⬆ Import Excel</button>
+      <button class="btn outline sm" onclick="downloadBagTemplate()" title="Blank Excel template">⬇ Template</button>
+      <input type="file" id="bpImportFile" accept=".xlsx,.xls" style="display:none" onchange="importBagExcel(event)">
+      <select id="bp_labelType" title="Label type (also used by the 🖶 button on each row)" style="padding:6px 8px;border-radius:6px;border:1px solid var(--line);">
+        <option value="standard">Label 1 — Standard (Bag No + Company Name)</option>
+        <option value="nocompany">Label 2 — Without Company Name</option>
+        <option value="pallet">Label 3 — Company Name + Pallet No</option>
+      </select>
+      <button class="btn amber sm" onclick="printBagLabels()">🖶 Print Selected Label(s) — A4 Landscape</button>
+      <button class="btn outline sm" onclick="bagSelectAll(true)">Select All</button>
+      <button class="btn outline sm" onclick="bagSelectAll(false)">Clear Selection</button>
+    </div>
+    <div id="bagListHost"></div>
+    <div class="toolbar no-print">
+      <button class="btn danger sm" onclick="clearManualBags()">🗑 Clear All</button>
+    </div>
+  </div>
+</div>
+
+<div id="printArea"></div>
+</main>
+
+<div class="toast" id="toast"></div>
+
+<script src="js/stock-boot.js"></script>
+</body>
+</html>
